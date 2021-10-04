@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        :root{
+            --visible: 'visible';
+        }
+        *{box-sizing: border-box;margin: 0;padding: 0;}
+        #app{border:1px solid;max-width: 600px;height: 100vh;margin: auto;position: relative;overflow: hidden;}
+        #app #j{width: 108px;height: 20px;background: red;position: absolute;bottom: 3em;left: calc(100% / 2.50);}
+        #app .bola{width: 25px;height: 25px;background-color: rgb(73, 72, 72);position: absolute;bottom: 15em;}
+        #app #c_barras{display: grid;grid-template-columns: repeat(5, 1fr);grid-gap: 2px;text-align: center;}
+        #app #c_barras .barra, .escombro{background-color: red;height: 20px;color: rgba(0,0,0,0.4);border: 1px solid;}
+        #app::after{content: 'Presiona Enter para Jugar';visibility: var(--visible); position: absolute;padding: 1em;text-align: center; top: 45vh;width: 100%;background-color: #ccc;}
+        .escombro{width: 113.55px;height: 20px;position: absolute;background-color: transparent;}
+        .animar {animation: parpadear 177ms 5;}
+        @keyframes parpadear {
+            50%{background-color: rgba(222,225,225,0.3);}
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="app">
+        <div id="c_barras"></div>
+        <div id="j" class="j"></div>
+    </div>
+
+    <script>
+
+        let w, d, b, j, p, app, c_barras, active_control, st1, si1
+        w = window, d = document, active_control = false
+        j = d.querySelector('#j'), app = d.querySelector('#app'), c_barras = d.querySelector('#c_barras')
+
+        function N_random(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        let cString = "abcdef0123456789"
+        let aC = cString.split("")
+        function getColor(){
+            let t = ''
+            for(let i = 0; i<6; i++){
+                t += aC[N_random(0, 7)]
+            }
+            return '#'+t
+        }
+
+        crearBarra = function(){
+            for(let i=0; i<45; i++){
+                b = d.createElement('div')
+                b.classList.add('barra')
+                b.style.background = getColor()
+                b.setAttribute('visible', '0')
+                b.setAttribute('data-vidas', N_random(1, 5))
+                b.innerText = b.getAttribute('data-vidas')
+                c_barras.appendChild(b)
+            }
+        }
+        control = function(){
+            active_control = true
+            d.addEventListener('keydown', function(){
+                if( event.keyCode == 37 && active_control && j.offsetLeft > 0 ){
+                    j.style.left = (--j.offsetLeft-10) + 'px'
+                }
+                if( event.keyCode == 39 && active_control && j.offsetLeft < app.offsetWidth - 124){
+                    j.style.left = (++j.offsetLeft+10) + 'px'
+                }                    
+            })
+        }
+        crearBola = function(){
+            b = d.createElement('div')
+            b.classList.add('bola')
+            b.id = 'bola'
+            b.style.left = N_random(0, (app.offsetWidth - 50)) + 'px'
+            app.appendChild(b)            
+        }
+        crearEscombro = function(e){
+            b = d.createElement('div')
+            b.classList.add('escombro')
+            b.style.top = e.offsetTop + 'px'
+            b.style.left = e.offsetLeft + 'px'
+            
+            var sc = e.style.background.split("(")
+            var sc1 = sc[0] = 'rgba'
+            var sc3 = sc[1].split(')')
+            sc3 = sc3[0]+', 1'
+            b.style.background = 'rgba('+sc3+')'
+
+            let event = new Event("caer");
+            b.addEventListener('caer', function(){
+                si1 = setInterval(function(e){
+                    e.style.top = (++e.offsetTop+5) + 'px'
+                    if( j.offsetLeft >= e.offsetLeft - e.offsetWidth && j.offsetLeft <= e.offsetLeft + e.offsetWidth && j.offsetTop >= e.offsetTop - 30 && j.offsetTop <= e.offsetTop + 20 ){
+                        clearTimeout(st1, 0)
+                        clearInterval(si1, 0)
+                        
+                        app.style.setProperty("--visible", "visible")
+    
+                        d.addEventListener('keyup', function(){
+                            location.reload()
+                        })
+                    }
+                    if( e.offsetTop > app.offsetHeight ){
+                        app.removeChild(e)
+                    }
+                }, 30, b)
+            })
+            b.dispatchEvent(event)
+            app.appendChild(b)            
+        }        
+
+        var act_x = N_random(0, 2)==1?true:false, act_y = false
+
+        moverBola = function(){
+            bola = d.querySelector('#bola')
+            objs = d.querySelectorAll('.bola, .barra, .j, .escombro')
+            objs.forEach((e)=>{        
+                if( e.getAttribute('data-vidas') > 0 && e.getAttribute('visible') == '0' && e.classList.contains('barra') && bola.offsetLeft >= e.offsetLeft && bola.offsetLeft <= e.offsetLeft + e.offsetWidth && bola.offsetTop >= e.offsetTop - 30 && bola.offsetTop <= e.offsetTop + 20 ){
+                    act_x = act_x
+                    act_y = !act_y
+
+                    var numb = parseInt(e.getAttribute('data-vidas'))
+                    e.setAttribute('data-vidas', --numb)
+                    e.innerText = e.getAttribute('data-vidas')
+                    e.classList.add('animar')
+                    if( e.getAttribute('data-vidas') == 0 ){
+                        e.setAttribute('visible', '1')
+                        e.style.visibility = 'hidden'
+                        crearEscombro(e)
+                    }
+                }     
+                if(bola && bola.offsetLeft >= j.offsetLeft - 10 && bola.offsetLeft <= j.offsetLeft + j.offsetWidth && bola.offsetTop >= j.offsetTop - 25 && bola.offsetTop <= j.offsetTop + 5 ){
+                    act_x = act_x
+                    act_y = false
+                }
+                if(e.className == 'escombro'){
+                    if( e.offsetTop > app.offsetHeight ){
+                        app.removeChild(e)
+                    }
+                }                                          
+            })
+
+            if( act_x ){
+                bola.style.left = (--bola.offsetLeft-1) + 'px'
+            }
+            if( !act_x ){
+                bola.style.left = (++bola.offsetLeft+1) + 'px'
+            }
+            if(bola.offsetLeft <= 0){
+                act_x = false
+            }
+            if(bola.offsetLeft >= app.offsetWidth - 50){
+                act_x = true
+            }
+            // 
+            if( !act_y ){
+                bola.style.top = (--bola.offsetTop-1) + 'px'
+            }
+            if( act_y ){
+                bola.style.top = (++bola.offsetTop+1) + 'px'
+            }
+            if(bola.offsetTop <= 0){
+                act_y = true
+            }
+            if(bola.offsetTop >= app.offsetHeight){
+                act_y = false
+                setTimeout(function(){
+                    clearTimeout(st1, 0)
+                    active_control = false
+                    app.style.setProperty("--visible", "visible")
+                    // at = false
+                    d.addEventListener('keyup', function(){
+                        if( event.keyCode == 13 ){
+                            location = "#restart"
+                            location.reload()
+                        }
+                    })
+                }, 0)
+            }  
+
+            st1 = setTimeout(moverBola, 6)
+        }
+        
+        var at = true //Activar Teclas movimiento
+        function cargar(){
+            j.style.left = (app.offsetWidth/2 - j.offsetWidth / 1.7) + 'px' 
+            crearBarra()
+            
+            d.addEventListener('keyup', function(){
+                if(event.keyCode == 13 && at){
+                    app.style.setProperty("--visible", "hidden")
+                    at = false
+                    crearBola()
+                    moverBola()
+                    control()                    
+                } 
+            })          
+            if( location.hash == "#restart" ){
+                at = false
+                app.style.setProperty("--visible", "hidden")
+                crearBola()
+                moverBola()
+                control()                 
+            }
+
+            function ObservarMutacion(elem, func){
+                var m=new MutationObserver((e)=>{
+                    func(e)
+                })
+                document.querySelectorAll(elem).forEach((e)=>{
+                    m.observe(e, {
+                        attributes: true,
+                        childList: true,
+                        subtree: true,
+                        characterDataOldValue: true
+                    })
+                })
+            }
+            ObservarMutacion(".barra", function(e){
+                e[0].target.addEventListener('animationend', function(){
+                    this.classList.remove('animar')
+                })
+            }) 
+        }
+        w.addEventListener('load', cargar)       
+    </script>
+
+</body>
+</html>
